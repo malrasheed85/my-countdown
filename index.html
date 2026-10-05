@@ -124,6 +124,9 @@ header h1{margin:0;font-size:24px;font-weight:800}
 
 #toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%);background:var(--accent);color:var(--onaccent);padding:9px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:60}
 :focus-visible{outline:2.5px solid #3E8BD8;outline-offset:2px}
+#app{max-width:600px;margin:0 auto}
+.bar{max-width:600px;margin:0 auto}
+.round.on{background:#2F9E68;color:#fff}
 </style>
 </head>
 <body>
@@ -140,6 +143,7 @@ header h1{margin:0;font-size:24px;font-weight:800}
   <header>
     <h1>مواعيدي</h1>
     <div class="hbtns">
+      <button class="round" id="notifBtn" aria-label="الإشعارات"><i class="ti ti-bell-off"></i></button>
       <button class="round" id="settingsBtn" aria-label="الإعدادات"><i class="ti ti-settings"></i></button>
     </div>
   </header>
@@ -163,6 +167,9 @@ header h1{margin:0;font-size:24px;font-weight:800}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+const VAPID_KEY = "BGfPBLx_y3IoAoOkZ58slQkLWztU1DLJiX0Z_KcTWg7BbyP1ln7K6o-G-reKeCB5gd7RER67dvddfsYAH29dECY";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDNoYzwHYN_DfRBOUZirvrU9li64Nd535M",
@@ -596,7 +603,53 @@ let lastDay = todayYMD();
 setInterval(() => { if (todayYMD() !== lastDay) { lastDay = todayYMD(); if (uid) { rollAutoEvents(); render(); } } }, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && uid) { rollAutoEvents(); render(); } });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+const swReady = 'serviceWorker' in navigator ? navigator.serviceWorker.register('sw.js').catch(() => null) : Promise.resolve(null);
+let messaging = null;
+isSupported().then(ok => {
+  if (!ok) return;
+  messaging = getMessaging(fbApp);
+  onMessage(messaging, p => toast((p.notification?.title || 'تنبيه') + (p.notification?.body ? ' — ' + p.notification.body : '')));
+}).catch(() => {});
+
+function setBell(on) {
+  const b = $('#notifBtn');
+  b.classList.toggle('on', on);
+  b.innerHTML = `<i class="ti ti-${on ? 'bell-ringing' : 'bell-off'}"></i>`;
+}
+function refreshBell() {
+  setBell(typeof Notification !== 'undefined' && Notification.permission === 'granted' && !!localStorage.getItem('mycd-token'));
+}
+
+async function enableNotifications() {
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (isIOS && !standalone) { alert('على الآيفون لازم تفتح التطبيق من أيقونته على الشاشة الرئيسية عشان تشتغل الإشعارات.\n\nمن Safari: زر المشاركة ← Add to Home Screen'); return; }
+  if (!messaging || typeof Notification === 'undefined') { alert('هذا المتصفح ما يدعم الإشعارات.'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { alert('الإشعارات مرفوضة. تقدر تفعّلها من إعدادات الجوال ← الإشعارات ← My Countdown.'); refreshBell(); return; }
+  try {
+    const reg = await swReady;
+    await navigator.serviceWorker.ready;
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg || undefined });
+    if (!token) throw new Error('ما رجع رمز للجهاز');
+    const key = token.replace(/[.#$\[\]\/]/g, '_').slice(-40);
+    await set(ref(db, `users/${uid}/tokens/${key}`), { token, device: isIOS ? 'iPhone' : navigator.platform || 'web', at: Date.now() });
+    localStorage.setItem('mycd-token', key);
+    refreshBell();
+    toast('تفعّلت الإشعارات على هذا الجهاز');
+  } catch (err) {
+    alert('ما قدرنا نفعّل الإشعارات: ' + err.message);
+  }
+}
+
+$('#notifBtn').onclick = async () => {
+  if ($('#notifBtn').classList.contains('on')) {
+    if (confirm('الإشعارات مفعّلة على هذا الجهاز ✅\n\nتبي تعيد التفعيل (مفيد لو تغيّر شي)؟')) enableNotifications();
+    return;
+  }
+  enableNotifications();
+};
+refreshBell();
 </script>
 </body>
 </html>
