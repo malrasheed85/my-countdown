@@ -6,7 +6,7 @@
 <title>My Countdown</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" type="image/png" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="My Countdown">
@@ -128,6 +128,20 @@ header h1{margin:0;font-size:24px;font-weight:800}
 #app{max-width:600px;margin:0 auto}
 .bar{max-width:600px;margin:0 auto}
 .round.on{background:#2F9E68;color:#fff}
+.cal{background:var(--surface);border-radius:20px;padding:12px 10px 8px;margin:4px 0 14px}
+.calhead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px}
+.calhead b{font-size:17px;font-weight:700}
+.calhead .navs{display:flex;gap:6px;align-items:center}
+.calhead .navs button{width:34px;height:34px;border-radius:50%;background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;font-size:18px}
+.calhead .navs .todayb{width:auto;padding:0 12px;border-radius:999px;font-size:13px;font-weight:700}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.calgrid .wd{font-size:12px;color:var(--muted);font-weight:600;padding:4px 0}
+.calgrid .d{aspect-ratio:1/1.05;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:15px;font-weight:600}
+.calgrid .d.today span.n{background:var(--accent);color:var(--onaccent);border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
+.calgrid .d.sel{background:var(--surface2)}
+.calgrid .dots{display:flex;gap:3px;height:6px}
+.calgrid .dots i{width:6px;height:6px;border-radius:50%;display:block}
+.dayhead{font-size:14px;color:var(--muted);font-weight:600;margin:0 6px 8px}
 </style>
 </head>
 <body>
@@ -144,11 +158,11 @@ header h1{margin:0;font-size:24px;font-weight:800}
   <header>
     <h1>مواعيدي</h1>
     <div class="hbtns">
+      <button class="round" id="viewBtn" aria-label="التقويم"><i class="ti ti-calendar"></i></button>
       <button class="round" id="notifBtn" aria-label="الإشعارات"><i class="ti ti-bell-off"></i></button>
       <button class="round" id="settingsBtn" aria-label="الإعدادات"><i class="ti ti-settings"></i></button>
     </div>
   </header>
-  <div class="chips" id="filters"></div>
   <div id="searchRow" class="hidden"><input id="searchIn" type="search" placeholder="ابحث باسم الموعد"></div>
   <main id="list"></main>
   <div class="bar">
@@ -187,12 +201,12 @@ const auth = getAuth(fbApp);
 const db = getDatabase(fbApp);
 
 const CATS = [
-  { id: 'car',      name: 'سيارة',    color: '#E5484D', icon: 'car' },
-  { id: 'work',     name: 'عمل',      color: '#8E4EC6', icon: 'briefcase' },
-  { id: 'home',     name: 'شقة',      color: '#3E8BD8', icon: 'building' },
-  { id: 'subs',     name: 'اشتراكات', color: '#2F9E68', icon: 'device-mobile' },
   { id: 'personal', name: 'شخصي',     color: '#E8732A', icon: 'user' },
-  { id: 'family',   name: 'عائلة',    color: '#D6409F', icon: 'users' }
+  { id: 'family',   name: 'عائلة',    color: '#D6409F', icon: 'users' },
+  { id: 'home',     name: 'سكن',      color: '#3E8BD8', icon: 'building' },
+  { id: 'subs',     name: 'اشتراكات', color: '#2F9E68', icon: 'device-mobile' },
+  { id: 'work',     name: 'عمل',      color: '#8E4EC6', icon: 'briefcase' },
+  { id: 'car',      name: 'سيارة',    color: '#E5484D', icon: 'car' }
 ];
 const catById = id => CATS.find(c => c.id === id) || CATS[4];
 
@@ -204,8 +218,12 @@ const LIB = [
   { sec: 'شخصي', items: ['scissors','bath','heartbeat','pill','stethoscope','dental','eye','barbell','run','shirt','plane','world'] },
   { sec: 'عامة', items: ['cash','gift','cake','star','bell','trophy','moon','building-mosque','sun','shopping-cart','paw'] }
 ];
-const FAMILY = [
-  { e: '👩', n: 'أم' }, { e: '👨', n: 'أب' }, { e: '🧔', n: 'أخ' }, { e: '🧕', n: 'أخت' }, { e: '👧', n: 'بنت' }
+const MAIN = [
+  { e: '🧼', n: 'نظافة' }, { e: '🚗', n: 'سيارة' }, { e: '🪪', n: 'استمارة' }, { e: '💵', n: 'فلوس' },
+  { e: '🏢', n: 'شقة' }, { e: '👴', n: 'رجل كبير' }, { e: '👵', n: 'امرأة كبيرة' }, { e: '👦', n: 'ولد' },
+  { e: '👧', n: 'بنت' }, { e: '🎁', n: 'هدية' }, { e: '💻', n: 'لابتوب' }, { e: '🧑‍💻', n: 'على مكتب' },
+  { t: 'devices', n: 'لابتوب وجوال' }, { e: '🧘‍♂️', n: 'يوقا' }, { e: '💊', n: 'علاج' }, { e: '⏰', n: 'منبّه' },
+  { e: '✈️', n: 'سفر' }, { e: '🖥️', n: 'شاشة' }, { e: '🎈', n: 'بالونات' }
 ];
 
 const ALERT_OPTS = [
@@ -215,10 +233,12 @@ const ALERT_OPTS = [
 const UNITS = { day: ['يوم', 'أيام'], week: ['أسبوع', 'أسابيع'], month: ['شهر', 'شهور'], year: ['سنة', 'سنوات'] };
 
 let uid = null, events = {}, filter = 'all', tab = 'up', query = '', unsub = null;
+let view = 'list', calY = new Date().getFullYear(), calM = new Date().getMonth(), selDay = null;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+function toEn(s) { return String(s).replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660).replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 function parseYMD(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
@@ -298,15 +318,12 @@ function rollAutoEvents() {
   });
 }
 
-function renderFilters() {
-  const all = [{ id: 'all', name: 'الكل' }, ...CATS];
-  $('#filters').innerHTML = all.map(c =>
-    `<button class="chip ${filter === c.id ? 'on' : ''}" data-f="${c.id}">${c.color ? `<span class="dot" style="background:${c.color}"></span>` : ''}${c.name}</button>`
-  ).join('');
-}
+function renderFilters() {}
 
 function render() {
   const today = todayYMD();
+  $('.seg').classList.toggle('hidden', view === 'cal');
+  if (view === 'cal') { const arr0 = Object.values(events).filter(e => e.date); $('#cUp').textContent = arr0.filter(e => dayDiff(today, e.date) >= 0).length; $('#cPast').textContent = arr0.length - Number($('#cUp').textContent); renderCal(); return; }
   const arr = Object.entries(events).map(([id, e]) => ({ id, ...e })).filter(e => e.date);
   const up = arr.filter(e => dayDiff(today, e.date) >= 0);
   const past = arr.filter(e => dayDiff(today, e.date) < 0);
@@ -330,10 +347,13 @@ function render() {
     return;
   }
 
-  $('#list').innerHTML = list.map(e => {
-    const c = catById(e.category), cd = countdown(e), rl = repeatLabel(e.repeat);
-    const isPast = cd.days < 0;
-    return `<div class="card ${isPast ? 'past' : ''}" style="--c:${c.color}" data-id="${e.id}" role="button" tabindex="0">
+  $('#list').innerHTML = list.map(cardHTML).join('');
+}
+
+function cardHTML(e) {
+  const c = catById(e.category), cd = countdown(e), rl = repeatLabel(e.repeat);
+  const isPast = cd.days < 0;
+  return `<div class="card ${isPast ? 'past' : ''}" style="--c:${c.color}" data-id="${e.id}" role="button" tabindex="0">
       <div class="ic">${iconHTML(e.icon)}</div>
       <div class="tx">
         <div class="nm">${esc(e.title)}</div>
@@ -343,7 +363,53 @@ function render() {
       </div>
       <div class="num"><b class="${cd.small ? 'sm' : ''}">${cd.big}</b>${cd.unit ? `<span>${cd.unit}</span>` : ''}</div>
     </div>`;
-  }).join('');
+}
+
+function occurrences(e, first, last) {
+  const out = [];
+  if (!e.date) return out;
+  let d = e.date, guard = 0;
+  if (e.repeat?.mode === 'auto') {
+    while (d <= last && guard++ < 400) {
+      if (d >= first) out.push(d);
+      d = addInterval(d, e.repeat.every, e.repeat.unit);
+    }
+  } else if (d >= first && d <= last) out.push(d);
+  return out;
+}
+
+const fmtMonth = new Intl.DateTimeFormat('ar-u-ca-gregory-nu-latn', { month: 'long', year: 'numeric' });
+const fmtDay = new Intl.DateTimeFormat('ar-u-ca-gregory-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
+
+function renderCal() {
+  const first = ymd(new Date(calY, calM, 1)), lastDate = new Date(calY, calM + 1, 0), last = ymd(lastDate);
+  const byDay = {};
+  Object.entries(events).forEach(([id, e]) => {
+    occurrences(e, first, last).forEach(d => { (byDay[d] = byDay[d] || []).push({ id, ...e, date: d }); });
+  });
+  const today = todayYMD();
+  if (!selDay || selDay < first || selDay > last) selDay = (today >= first && today <= last) ? today : first;
+  const lead = new Date(calY, calM, 1).getDay();
+  const wd = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+  let cells = wd.map(w => `<div class="wd">${w}</div>`).join('');
+  for (let i = 0; i < lead; i++) cells += '<div></div>';
+  for (let n = 1; n <= lastDate.getDate(); n++) {
+    const key = ymd(new Date(calY, calM, n)), evs = byDay[key] || [];
+    const dots = evs.slice(0, 3).map(e => `<i style="background:${catById(e.category).color}"></i>`).join('');
+    cells += `<button class="d ${key === today ? 'today' : ''} ${key === selDay ? 'sel' : ''}" data-day="${key}"><span class="n">${n}</span><span class="dots">${dots}</span></button>`;
+  }
+  const dayEvs = byDay[selDay] || [];
+  $('#list').innerHTML = `<div class="cal">
+      <div class="calhead"><b>${fmtMonth.format(new Date(calY, calM, 1))}</b>
+        <div class="navs">
+          <button class="todayb" id="calToday">اليوم</button>
+          <button id="calPrev" aria-label="الشهر السابق"><i class="ti ti-chevron-right"></i></button>
+          <button id="calNext" aria-label="الشهر الجاي"><i class="ti ti-chevron-left"></i></button>
+        </div></div>
+      <div class="calgrid">${cells}</div>
+    </div>
+    <div class="dayhead">${fmtDay.format(parseYMD(selDay))}</div>
+    ${dayEvs.length ? dayEvs.map(cardHTML).join('') : '<div class="empty" style="padding:24px 20px">ما فيه مواعيد في هاليوم</div>'}`;
 }
 
 function openEditor(id, opts = {}) {
@@ -354,19 +420,19 @@ function openEditor(id, opts = {}) {
     date: opts.date || src?.date || todayYMD(),
     time: src?.time || '',
     hasTime: !!src?.time,
-    category: src?.category || (filter !== 'all' ? filter : 'personal'),
+    category: src?.category || null,
     icon: src?.icon || null,
     showHours: !!src?.showHours,
-    alerts: src?.alerts ? [...src.alerts] : [30, 7, 1],
+    alerts: src?.alerts ? [...src.alerts] : [],
     repeat: src?.repeat ? { ...src.repeat } : { mode: 'none', every: 1, unit: 'year' }
   };
-  if (!st.icon) st.icon = { t: 'ti', v: catById(st.category).icon };
+  if (!st.icon) st.icon = st.category ? { t: 'ti', v: catById(st.category).icon } : { t: 'ti', v: 'clock' };
   let iconTouched = !!src?.icon;
 
   const host = $('#sheetHost');
   function draw() {
     const prevScroll = host.querySelector('.sheet')?.scrollTop || 0;
-    const c = catById(st.category);
+    const c = st.category ? catById(st.category) : { color: '#8E8E93' };
     host.innerHTML = `<div class="overlay" id="ov"><div class="sheet" role="dialog" aria-modal="true">
       <div class="shead">
         <button class="round" id="xBtn" aria-label="إغلاق"><i class="ti ti-x"></i></button>
@@ -384,18 +450,20 @@ function openEditor(id, opts = {}) {
       <p class="err hidden" id="errTitle">اكتب اسم الموعد</p>
 
       <div class="box">
-        <div class="row"><label for="fDate">التاريخ</label><input type="date" id="fDate" value="${st.date}"></div>
+        <div class="row"><label for="fDate">التاريخ</label><input type="date" lang="en" id="fDate" value="${st.date}"></div>
         <div class="row"><span class="lbl" style="margin:0">إضافة وقت</span><button class="switch ${st.hasTime ? 'on' : ''}" id="swTime" aria-label="إضافة وقت"></button></div>
-        ${st.hasTime ? `<div class="row"><label for="fTime">الوقت</label><input type="time" id="fTime" value="${st.time || '09:00'}"></div>` : ''}
+        ${st.hasTime ? `<div class="row"><label for="fTime">الوقت</label><input type="time" lang="en" id="fTime" value="${st.time || '09:00'}"></div>` : ''}
         <div class="row"><span class="lbl" style="margin:0">العرض بالساعات</span><button class="switch ${st.showHours ? 'on' : ''}" id="swHours" aria-label="العرض بالساعات"></button></div>
       </div>
 
       <span class="lbl">التصنيف</span>
-      <div class="wrap" id="catWrap">${CATS.map(k => `<button class="chip ${st.category === k.id ? 'on' : ''}" data-cat="${k.id}"><span class="dot" style="background:${k.color}"></span>${k.name}</button>`).join('')}</div>
+      <div class="wrap" id="catWrap" style="margin-bottom:${st.category ? 12 : 4}px">${CATS.map(k => `<button class="chip ${st.category === k.id ? 'on' : ''}" data-cat="${k.id}"><span class="dot" style="background:${k.color}"></span>${k.name}</button>`).join('')}</div>
+      <p class="err hidden" id="errCat">اختر التصنيف</p>
 
       <span class="lbl">التنبيهات</span>
       <div class="wrap" id="alWrap">${ALERT_OPTS.map(a => `<button class="chip ${st.alerts.includes(a.d) ? 'on' : ''}" data-al="${a.d}">${a.n}</button>`).join('')}</div>
-      <p class="hint">يوصلك الإشعار بين 9 و10 الصبح في الأيام اللي تختارها.</p>
+      <p class="hint">يوصلك الإشعار بين 9 و10 الصبح في الأيام اللي تختارها. إذا ما اخترت شي، ما يجيك إشعار لهالموعد.</p>
+
       <span class="lbl">التكرار</span>
       <div class="segfull" id="repSeg">
         <button data-rep="none" class="${st.repeat.mode === 'none' ? 'on' : ''}">بدون</button>
@@ -405,7 +473,7 @@ function openEditor(id, opts = {}) {
       ${st.repeat.mode !== 'none' ? `<div class="box"><div class="row">
         <label>${st.repeat.mode === 'auto' ? 'يتجدد كل' : 'المدة المعتادة'}</label>
         <div style="display:flex;gap:8px">
-          <input type="number" id="fEvery" min="1" max="99" step="1" value="${st.repeat.every}">
+          <input type="text" inputmode="numeric" id="fEvery" maxlength="2" value="${st.repeat.every}" style="width:70px;text-align:center;background:var(--surface2);border:0;border-radius:10px;padding:6px 10px;min-height:36px">
           <select id="fUnit">${Object.entries(UNITS).map(([k, v]) => `<option value="${k}" ${st.repeat.unit === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
         </div></div></div>
         <p class="hint">${st.repeat.mode === 'auto'
@@ -423,7 +491,7 @@ function openEditor(id, opts = {}) {
     st.subtitle = $('#fSub').value.trim();
     st.date = $('#fDate').value || st.date;
     if (st.hasTime && $('#fTime')) st.time = $('#fTime').value;
-    if ($('#fEvery')) st.repeat.every = Math.max(1, Math.min(99, parseInt($('#fEvery').value, 10) || 1));
+    if ($('#fEvery')) st.repeat.every = Math.max(1, Math.min(99, parseInt(toEn($('#fEvery').value), 10) || 1));
     if ($('#fUnit')) st.repeat.unit = $('#fUnit').value;
   }
 
@@ -452,7 +520,7 @@ function openEditor(id, opts = {}) {
     $('#fTitle').oninput = () => $('#errTitle').classList.add('hidden');
     $('#pickIcon').onclick = () => {
       readInputs();
-      openIconPicker(st.icon, catById(st.category).color, ic => { st.icon = ic; iconTouched = true; draw(); });
+      openIconPicker(st.icon, st.category ? catById(st.category).color : '#8E8E93', ic => { st.icon = ic; iconTouched = true; draw(); });
     };
     if ($('#delBtn')) $('#delBtn').onclick = async () => {
       if (!confirm(`تحذف "${events[id]?.title}" نهائياً؟`)) return;
@@ -462,6 +530,7 @@ function openEditor(id, opts = {}) {
     $('#okBtn').onclick = async () => {
       readInputs();
       if (!st.title) { $('#errTitle').classList.remove('hidden'); $('#fTitle').focus(); return; }
+      if (!st.category) { $('#errCat').classList.remove('hidden'); $('#catWrap').scrollIntoView({ block: 'center' }); return; }
       const data = {
         title: st.title,
         subtitle: st.subtitle || null,
@@ -501,8 +570,11 @@ function openIconPicker(current, color, onPick) {
         <button data-m="em" class="${mode === 'em' ? 'on' : ''}">إيموجي</button>
       </div>
       ${mode === 'ti' ? `
-        <div class="psec">عائلة</div>
-        <div class="pgrid">${FAMILY.map(f => `<button data-em="${f.e}" class="${current?.v === f.e ? 'on' : ''}"><span>${f.e}</span><small>${f.n}</small></button>`).join('')}</div>
+        <div class="psec">الأساسية</div>
+        <div class="pgrid">${MAIN.map(f => f.t
+          ? `<button data-ti="${f.t}" class="${current?.v === f.t ? 'on' : ''}" style="color:${color}"><i class="ti ti-${f.t}"></i><small>${f.n}</small></button>`
+          : `<button data-em="${f.e}" class="${current?.v === f.e ? 'on' : ''}"><span>${f.e}</span><small>${f.n}</small></button>`).join('')}</div>
+        <div class="psec" style="margin-top:18px">المزيد</div>
         ${LIB.map(s => `<div class="psec">${s.sec}</div><div class="pgrid">${s.items.map(n =>
           `<button data-ti="${n}" class="${current?.t === 'ti' && current.v === n ? 'on' : ''}" style="color:${color}"><i class="ti ti-${n}"></i></button>`).join('')}</div>`).join('')}
       ` : `
@@ -533,11 +605,24 @@ function openIconPicker(current, color, onPick) {
   draw();
 }
 
-$('#filters').onclick = ev => { const b = ev.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; renderFilters(); render(); };
+$('#viewBtn').onclick = () => {
+  view = view === 'list' ? 'cal' : 'list';
+  $('#viewBtn').innerHTML = `<i class="ti ti-${view === 'cal' ? 'list' : 'calendar'}"></i>`;
+  $('#viewBtn').setAttribute('aria-label', view === 'cal' ? 'القائمة' : 'التقويم');
+  if (view === 'cal') { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); selDay = todayYMD(); }
+  render();
+};
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.tagName !== 'INPUT' || !['text', 'search'].includes(t.type)) return;
+  const v = toEn(t.value);
+  if (v !== t.value) { const p = t.selectionStart; t.value = v; try { t.setSelectionRange(p, p); } catch (e) {} t.dispatchEvent(new Event('input', { bubbles: true })); }
+}, true);
 $('#tabUp').onclick = () => { tab = 'up'; $('#tabUp').classList.add('on'); $('#tabPast').classList.remove('on'); render(); };
 $('#tabPast').onclick = () => { tab = 'past'; $('#tabPast').classList.add('on'); $('#tabUp').classList.remove('on'); render(); };
 $('#addBtn').onclick = () => openEditor(null);
 $('#searchBtn').onclick = () => {
+  if (view === 'cal') $('#viewBtn').click();
   const r = $('#searchRow');
   r.classList.toggle('hidden');
   if (!r.classList.contains('hidden')) $('#searchIn').focus();
@@ -545,6 +630,11 @@ $('#searchBtn').onclick = () => {
 };
 $('#searchIn').oninput = ev => { query = ev.target.value.trim(); render(); };
 $('#list').addEventListener('click', ev => {
+  if (ev.target.closest('#calPrev')) { calM--; if (calM < 0) { calM = 11; calY--; } selDay = null; renderCal(); return; }
+  if (ev.target.closest('#calNext')) { calM++; if (calM > 11) { calM = 0; calY++; } selDay = null; renderCal(); return; }
+  if (ev.target.closest('#calToday')) { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth(); selDay = todayYMD(); renderCal(); return; }
+  const dc = ev.target.closest('[data-day]');
+  if (dc) { selDay = dc.dataset.day; renderCal(); return; }
   const rn = ev.target.closest('[data-renew]');
   if (rn) {
     ev.stopPropagation();
