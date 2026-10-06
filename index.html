@@ -395,8 +395,7 @@ function openEditor(id, opts = {}) {
 
       <span class="lbl">التنبيهات</span>
       <div class="wrap" id="alWrap">${ALERT_OPTS.map(a => `<button class="chip ${st.alerts.includes(a.d) ? 'on' : ''}" data-al="${a.d}">${a.n}</button>`).join('')}</div>
-            <p class="hint">الإشعارات نفسها بتشتغل في مرحلة قادمة، واختياراتك محفوظة من الحين.</p>
-
+      <p class="hint">يوصلك الإشعار بين 9 و10 الصبح في الأيام اللي تختارها.</p>
       <span class="lbl">التكرار</span>
       <div class="segfull" id="repSeg">
         <button data-rep="none" class="${st.repeat.mode === 'none' ? 'on' : ''}">بدون</button>
